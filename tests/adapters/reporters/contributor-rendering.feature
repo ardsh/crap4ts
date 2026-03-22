@@ -87,14 +87,14 @@ Feature: Contributor rendering in reporters
     When the result is formatted by the JSON reporter
     Then the contributor in JSON does not have an "operator" field
 
-  # --- Table and markdown reporters ---
+  # --- Table and markdown reporters ignore contributors ---
 
-  Scenario: Console reporter output is unchanged regardless of breakdown mode
+  Scenario: Console reporter does not render contributor data
     Given an analysis result with contributors
     When the result is formatted by the console reporter
-    Then the output matches the format without breakdown
+    Then the output does not contain contributor details
 
-  Scenario: Markdown reporter output is unchanged regardless of breakdown mode
+  Scenario: Markdown reporter does not render contributor data
     Given an analysis result with contributors
     When the result is formatted by the markdown reporter
-    Then the output matches the format without breakdown
+    Then the output does not contain contributor details

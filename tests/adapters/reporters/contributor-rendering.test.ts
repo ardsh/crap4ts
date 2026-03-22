@@ -177,25 +177,29 @@ describe("Contributor rendering in reporters", () => {
     });
   });
 
-  describe("Table and markdown reporters", () => {
-    it("console reporter output is unchanged regardless of breakdown mode", () => {
+  describe("Table and markdown reporters ignore contributors", () => {
+    it("console reporter does not render contributor data", () => {
       const v = makeVerdict("fn", 20, 12);
       const result = makeResult([v]);
 
-      const withBreakdown = new ConsoleReporter({ color: false });
-      const withoutBreakdown = new ConsoleReporter({ color: false });
+      const reporter = new ConsoleReporter({ color: false });
+      const output = reporter.format(result);
 
-      expect(withBreakdown.format(result)).toBe(withoutBreakdown.format(result));
+      expect(output).not.toContain("if-branch");
+      expect(output).not.toContain("for-loop");
+      expect(output).not.toContain("contributors");
     });
 
-    it("markdown reporter output is unchanged regardless of breakdown mode", () => {
+    it("markdown reporter does not render contributor data", () => {
       const v = makeVerdict("fn", 20, 12);
       const result = makeResult([v]);
 
-      const reporter1 = new MarkdownReporter();
-      const reporter2 = new MarkdownReporter();
+      const reporter = new MarkdownReporter();
+      const output = reporter.format(result);
 
-      expect(reporter1.format(result)).toBe(reporter2.format(result));
+      expect(output).not.toContain("if-branch");
+      expect(output).not.toContain("for-loop");
+      expect(output).not.toContain("contributors");
     });
   });
 });
