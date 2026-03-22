@@ -323,7 +323,7 @@ describe("config file defaults — CLI integration", () => {
       );
 
       // Active fields
-      expect(content).toMatch(/threshold:\s*12/);
+      expect(content).toMatch(/threshold:\s*16/);
       expect(content).toMatch(/coverageMetric:\s*"line"/);
       expect(content).toMatch(/exclude:/);
 

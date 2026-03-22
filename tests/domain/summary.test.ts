@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { computeSummary } from "../../src/domain/summary.js";
 import { classifyRisk } from "../../src/domain/crap.js";
 import { RiskLevel } from "../../src/domain/types.js";
+import { PRESETS } from "../../src/domain/threshold.js";
 import type { FunctionVerdict, FunctionIdentity, CrapScore } from "../../src/domain/types.js";
 
 function makeVerdict(name: string, crapValue: number, threshold: number): FunctionVerdict {
@@ -113,7 +114,7 @@ describe("computeSummary", () => {
         cyclomaticComplexity: 1, coveragePercent: 100,
         crap: { value: 3, riskLevel: RiskLevel.Low }, contributors: [],
       },
-      threshold: 12, exceeds: false,
+      threshold: PRESETS.default, exceeds: false,
     };
     const summary = computeSummary([v1, v2]);
     expect(summary.totalFiles).toBe(2);

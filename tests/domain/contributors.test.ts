@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { selectContributors } from "../../src/domain/contributors.js";
+import { PRESETS } from "../../src/domain/threshold.js";
 import type {
   ComplexityContributor,
   FunctionVerdict,
@@ -21,7 +22,7 @@ function makeVerdict(
       crap: { value: exceeds ? 20 : 2, riskLevel: "low" as const },
       contributors,
     },
-    threshold: 12,
+    threshold: PRESETS.default,
     exceeds,
   };
 }

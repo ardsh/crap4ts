@@ -13,4 +13,5 @@ reports/
 .claude/*
 !.claude/rules/
 !.claude/rules/**
+.claude/focus.md
 .workflow/

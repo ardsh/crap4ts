@@ -1,0 +1,253 @@
+name: 'crap4ts'
+description: 'CRAP score analysis for TypeScript — find complex, under-tested functions'
+author: 'Breezy Bays Labs'
+
+branding:
+  icon: 'activity'
+  color: 'orange'
+
+inputs:
+  threshold:
+    description: 'CRAP score threshold (default: 30 for gradual adoption)'
+    required: false
+    default: '30'
+  coverage-path:
+    description: 'Path to coverage JSON. Omit to let CLI auto-discover.'
+    required: false
+    default: ''
+  src:
+    description: 'Source directories (space-separated). Omit to let CLI auto-discover.'
+    required: false
+    default: ''
+  changed-only:
+    description: 'Only analyze functions changed in this PR'
+    required: false
+    default: 'true'
+  post-comment:
+    description: 'Post/update PR comment with results'
+    required: false
+    default: 'true'
+  upload-artifact:
+    description: 'Upload JSON report as workflow artifact'
+    required: false
+    default: 'true'
+  version:
+    description: 'crap4ts version to install via npx'
+    required: false
+    default: 'latest'
+  working-directory:
+    description: 'Directory to run analysis from'
+    required: false
+    default: '.'
+  coverage-metric:
+    description: 'Coverage metric: line or branch'
+    required: false
+    default: ''
+  local:
+    description: 'Use local dist/cli.js instead of npx (for dogfooding)'
+    required: false
+    default: 'false'
+
+outputs:
+  passed:
+    description: 'Whether all functions passed threshold'
+    value: ${{ steps.parse.outputs.passed }}
+  total:
+    description: 'Total functions analyzed'
+    value: ${{ steps.parse.outputs.total }}
+  exceeding:
+    description: 'Count of functions exceeding threshold'
+    value: ${{ steps.parse.outputs.exceeding }}
+  exit-code:
+    description: 'Raw exit code (0=pass, 1=threshold, 2=config, 3=parse)'
+    value: ${{ steps.analyze.outputs.exit_code }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run CRAP analysis (JSON)
+      id: analyze
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        INPUT_LOCAL: ${{ inputs.local }}
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_THRESHOLD: ${{ inputs.threshold }}
+        INPUT_COVERAGE_PATH: ${{ inputs.coverage-path }}
+        INPUT_SRC: ${{ inputs.src }}
+        INPUT_COVERAGE_METRIC: ${{ inputs.coverage-metric }}
+        INPUT_CHANGED_ONLY: ${{ inputs.changed-only }}
+        PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      run: |
+        # Build the command
+        if [ "$INPUT_LOCAL" = "true" ]; then
+          CMD="node dist/cli.js"
+        else
+          CMD="npx crap4ts@${INPUT_VERSION}"
+        fi
+
+        CMD="$CMD --format json"
+
+        # Conditionally add flags only when inputs are explicitly set
+        if [ -n "$INPUT_THRESHOLD" ]; then
+          CMD="$CMD --threshold $INPUT_THRESHOLD"
+        fi
+        if [ -n "$INPUT_COVERAGE_PATH" ]; then
+          CMD="$CMD --coverage $INPUT_COVERAGE_PATH"
+        fi
+        if [ -n "$INPUT_SRC" ]; then
+          CMD="$CMD --src $INPUT_SRC"
+        fi
+        if [ -n "$INPUT_COVERAGE_METRIC" ]; then
+          CMD="$CMD --coverage-metric $INPUT_COVERAGE_METRIC"
+        fi
+
+        # Changed-only mode in PR context
+        if [ "$INPUT_CHANGED_ONLY" = "true" ] && [ -n "$PR_BASE_SHA" ]; then
+          CMD="$CMD --changed-since $PR_BASE_SHA"
+        fi
+
+        echo "Running: $CMD"
+
+        # Capture exit code without failing the step
+        set +e
+        $CMD > crap4ts-report.json
+        EXIT_CODE=$?
+        set -e
+
+        echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+
+        # For config/parse errors, dump the output and fail immediately
+        if [ $EXIT_CODE -eq 2 ] || [ $EXIT_CODE -eq 3 ]; then
+          echo "::error::crap4ts failed with exit code $EXIT_CODE"
+          cat crap4ts-report.json
+          exit $EXIT_CODE
+        fi
+
+    - name: Parse analysis results
+      id: parse
+      if: steps.analyze.outputs.exit_code == '0' || steps.analyze.outputs.exit_code == '1'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "passed=$(jq -r '.passed' crap4ts-report.json)" >> "$GITHUB_OUTPUT"
+        echo "total=$(jq -r '.summary.totalFunctions' crap4ts-report.json)" >> "$GITHUB_OUTPUT"
+        echo "exceeding=$(jq -r '.summary.exceedingThreshold' crap4ts-report.json)" >> "$GITHUB_OUTPUT"
+
+    - name: Run CRAP analysis (Markdown)
+      id: markdown
+      if: |
+        inputs.post-comment == 'true' &&
+        github.event_name == 'pull_request' &&
+        (steps.analyze.outputs.exit_code == '0' || steps.analyze.outputs.exit_code == '1')
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        INPUT_LOCAL: ${{ inputs.local }}
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_THRESHOLD: ${{ inputs.threshold }}
+        INPUT_COVERAGE_PATH: ${{ inputs.coverage-path }}
+        INPUT_SRC: ${{ inputs.src }}
+        INPUT_COVERAGE_METRIC: ${{ inputs.coverage-metric }}
+        INPUT_CHANGED_ONLY: ${{ inputs.changed-only }}
+        PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        # Build the command (same flags as JSON, different format)
+        if [ "$INPUT_LOCAL" = "true" ]; then
+          CMD="node dist/cli.js"
+        else
+          CMD="npx crap4ts@${INPUT_VERSION}"
+        fi
+
+        CMD="$CMD --format markdown"
+
+        if [ -n "$INPUT_THRESHOLD" ]; then
+          CMD="$CMD --threshold $INPUT_THRESHOLD"
+        fi
+        if [ -n "$INPUT_COVERAGE_PATH" ]; then
+          CMD="$CMD --coverage $INPUT_COVERAGE_PATH"
+        fi
+        if [ -n "$INPUT_SRC" ]; then
+          CMD="$CMD --src $INPUT_SRC"
+        fi
+        if [ -n "$INPUT_COVERAGE_METRIC" ]; then
+          CMD="$CMD --coverage-metric $INPUT_COVERAGE_METRIC"
+        fi
+
+        if [ "$INPUT_CHANGED_ONLY" = "true" ] && [ -n "$PR_BASE_SHA" ]; then
+          CMD="$CMD --changed-since $PR_BASE_SHA"
+        fi
+
+        # Run and capture (ignore exit code — we already have it from step 1)
+        set +e
+        $CMD > crap4ts-comment-body.md
+        set -e
+
+        # Build full comment with marker and footer
+        if [ "$INPUT_CHANGED_ONLY" = "true" ] && [ -n "$PR_BASE_SHA" ]; then
+          MODE="Changed functions only"
+        else
+          MODE="Full analysis"
+        fi
+
+        {
+          echo "<!-- crap4ts-report -->"
+          cat crap4ts-comment-body.md
+          echo ""
+          echo "---"
+          echo "*Threshold: ${INPUT_THRESHOLD:-default} · ${MODE} · [Workflow run](${RUN_URL})*"
+        } > crap4ts-comment.md
+
+    - name: Post PR comment
+      if: |
+        inputs.post-comment == 'true' &&
+        github.event_name == 'pull_request' &&
+        (steps.analyze.outputs.exit_code == '0' || steps.analyze.outputs.exit_code == '1')
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
+        WORKING_DIR: ${{ inputs.working-directory }}
+      run: |
+        MARKER="<!-- crap4ts-report -->"
+        COMMENT_BODY=$(cat "${WORKING_DIR}/crap4ts-comment.md")
+
+        # Find existing comment with marker
+        COMMENT_ID=$(gh api \
+          "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+          --paginate \
+          --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id" \
+          | head -1)
+
+        if [ -n "$COMMENT_ID" ]; then
+          gh api \
+            "repos/${REPO}/issues/comments/${COMMENT_ID}" \
+            --method PATCH \
+            --field body="$COMMENT_BODY"
+          echo "Updated existing comment $COMMENT_ID"
+        else
+          gh api \
+            "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            --method POST \
+            --field body="$COMMENT_BODY"
+          echo "Created new comment"
+        fi
+
+    - name: Upload CRAP report
+      if: inputs.upload-artifact == 'true' && (steps.analyze.outputs.exit_code == '0' || steps.analyze.outputs.exit_code == '1')
+      uses: actions/upload-artifact@v4
+      with:
+        name: crap4ts-report
+        path: ${{ inputs.working-directory }}/crap4ts-report.json
+        retention-days: 30
+
+    - name: Check threshold result
+      if: steps.analyze.outputs.exit_code == '1'
+      shell: bash
+      env:
+        EXCEEDING: ${{ steps.parse.outputs.exceeding }}
+      run: |
+        echo "::error::CRAP analysis found ${EXCEEDING} function(s) exceeding threshold"
+        exit 1

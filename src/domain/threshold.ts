@@ -4,7 +4,7 @@ import type { ThresholdConfig, ThresholdOverride, ThresholdPreset } from "./type
 
 export const PRESETS: Readonly<Record<ThresholdPreset, number>> = {
   strict: 8,
-  default: 12,
+  default: 16,
   lenient: 30,
 } as const;
 

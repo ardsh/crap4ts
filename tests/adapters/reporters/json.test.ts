@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { JsonReporter } from "../../../src/adapters/reporters/json.js";
 import { RiskLevel } from "../../../src/domain/types.js";
+import { PRESETS } from "../../../src/domain/threshold.js";
 import type {
   AnalysisResult,
   FunctionVerdict,
@@ -80,7 +81,7 @@ function makeResult(
   functions: FunctionVerdict[],
   summary: AnalysisSummary,
   passed: boolean,
-  threshold = 12,
+  threshold = PRESETS.default,
 ): AnalysisResult {
   return {
     functions,
@@ -168,7 +169,7 @@ describe("JsonReporter", () => {
         warnings: [],
         summary: makeSummary(),
         thresholdConfig: {
-          defaultThreshold: 12,
+          defaultThreshold: PRESETS.default,
           overrides: [{ glob: "src/legacy/**", threshold: 30 }],
         },
         passed: true,
@@ -176,7 +177,7 @@ describe("JsonReporter", () => {
       const output = reporter.format(analysisResult);
       const parsed = JSON.parse(output);
       expect(parsed.config).toEqual({
-        defaultThreshold: 12,
+        defaultThreshold: PRESETS.default,
         overrides: [{ glob: "src/legacy/**", threshold: 30 }],
       });
     });
@@ -202,8 +203,8 @@ describe("JsonReporter", () => {
     });
 
     it("includes functions array from AnalysisResult.functions", () => {
-      const v1 = makeVerdict("src/pricing.ts", "calculateTotal", 12, 45.0, 97.3, 12);
-      const v2 = makeVerdict("src/utils.ts", "add", 1, 100.0, 1.0, 12);
+      const v1 = makeVerdict("src/pricing.ts", "calculateTotal", 12, 45.0, 97.3, PRESETS.default);
+      const v2 = makeVerdict("src/utils.ts", "add", 1, 100.0, 1.0, PRESETS.default);
 
       const result = makeResult(
         [v1, v2],
@@ -230,7 +231,7 @@ describe("JsonReporter", () => {
     });
 
     it("preserves all AnalysisResult data through serialization", () => {
-      const v1 = makeVerdict("src/a.ts", "fnA", 5, 80.0, 6.25, 12);
+      const v1 = makeVerdict("src/a.ts", "fnA", 5, 80.0, 6.25, PRESETS.default);
 
       const summary = makeSummary({
         totalFunctions: 1,
