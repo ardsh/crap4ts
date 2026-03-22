@@ -3,6 +3,7 @@ import { JsonReporter } from "../../../src/adapters/reporters/json.js";
 import { ConsoleReporter } from "../../../src/adapters/reporters/console.js";
 import { MarkdownReporter } from "../../../src/adapters/reporters/markdown.js";
 import { computeSummary } from "../../../src/domain/summary.js";
+import { prepareForJsonOutput } from "../../../src/cli/cli.js";
 import type {
   AnalysisResult,
   ComplexityContributor,
@@ -60,14 +61,14 @@ function makeResult(verdicts: FunctionVerdict[]): AnalysisResult {
 }
 
 describe("Contributor rendering in reporters", () => {
-  describe("JSON reporter: breakdown mode filtering", () => {
+  describe("JSON reporter: breakdown mode filtering (via pre-mapping)", () => {
     it('mode "all" includes contributors on every function', () => {
       const v1 = makeVerdict("fn1", 20, 12); // exceeding
       const v2 = makeVerdict("fn2", 5, 12); // not exceeding
       const v3 = makeVerdict("fn3", 15, 12); // exceeding
-      const result = makeResult([v1, v2, v3]);
+      const result = prepareForJsonOutput(makeResult([v1, v2, v3]), "all");
 
-      const reporter = new JsonReporter({ breakdown: "all" });
+      const reporter = new JsonReporter();
       const parsed = JSON.parse(reporter.format(result));
 
       for (const fn of parsed.functions) {
@@ -79,9 +80,9 @@ describe("Contributor rendering in reporters", () => {
       const v1 = makeVerdict("fn1", 20, 12); // exceeding
       const v2 = makeVerdict("fn2", 5, 12); // not exceeding
       const v3 = makeVerdict("fn3", 15, 12); // exceeding
-      const result = makeResult([v1, v2, v3]);
+      const result = prepareForJsonOutput(makeResult([v1, v2, v3]), "exceeding");
 
-      const reporter = new JsonReporter({ breakdown: "exceeding" });
+      const reporter = new JsonReporter();
       const parsed = JSON.parse(reporter.format(result));
 
       expect(parsed.functions[0].scored).toHaveProperty("contributors");
@@ -91,9 +92,9 @@ describe("Contributor rendering in reporters", () => {
 
     it('mode "off" omits contributors from all functions', () => {
       const v1 = makeVerdict("fn1", 20, 12);
-      const result = makeResult([v1]);
+      const result = prepareForJsonOutput(makeResult([v1]), "off");
 
-      const reporter = new JsonReporter({ breakdown: "off" });
+      const reporter = new JsonReporter();
       const parsed = JSON.parse(reporter.format(result));
 
       expect(parsed.functions[0].scored).not.toHaveProperty("contributors");
@@ -103,9 +104,9 @@ describe("Contributor rendering in reporters", () => {
   describe("JSON key presence contract", () => {
     it("CC=1 function has empty contributors array when breakdown is active", () => {
       const v = makeVerdict("simple", 1, 12, []);
-      const result = makeResult([v]);
+      const result = prepareForJsonOutput(makeResult([v]), "all");
 
-      const reporter = new JsonReporter({ breakdown: "all" });
+      const reporter = new JsonReporter();
       const parsed = JSON.parse(reporter.format(result));
 
       expect(parsed.functions[0].scored.contributors).toEqual([]);
@@ -113,9 +114,9 @@ describe("Contributor rendering in reporters", () => {
 
     it("contributors key is absent from JSON when breakdown mode is off", () => {
       const v = makeVerdict("fn", 20, 12);
-      const result = makeResult([v]);
+      const result = prepareForJsonOutput(makeResult([v]), "off");
 
-      const reporter = new JsonReporter({ breakdown: "off" });
+      const reporter = new JsonReporter();
       const parsed = JSON.parse(reporter.format(result));
 
       expect(parsed.functions[0].scored).not.toHaveProperty("contributors");
@@ -123,9 +124,9 @@ describe("Contributor rendering in reporters", () => {
 
     it("non-exceeding function has no contributors key in exceeding mode", () => {
       const v = makeVerdict("fn", 5, 12);
-      const result = makeResult([v]);
+      const result = prepareForJsonOutput(makeResult([v]), "exceeding");
 
-      const reporter = new JsonReporter({ breakdown: "exceeding" });
+      const reporter = new JsonReporter();
       const parsed = JSON.parse(reporter.format(result));
 
       expect(parsed.functions[0].scored).not.toHaveProperty("contributors");
@@ -138,9 +139,9 @@ describe("Contributor rendering in reporters", () => {
         { kind: "if-branch", line: 10, column: 4 },
       ];
       const v = makeVerdict("fn", 20, 12, contributors);
-      const result = makeResult([v]);
+      const result = prepareForJsonOutput(makeResult([v]), "all");
 
-      const reporter = new JsonReporter({ breakdown: "all" });
+      const reporter = new JsonReporter();
       const parsed = JSON.parse(reporter.format(result));
 
       const c = parsed.functions[0].scored.contributors[0];
@@ -154,9 +155,9 @@ describe("Contributor rendering in reporters", () => {
         { kind: "logical-operator", line: 5, column: 8, operator: "&&" },
       ];
       const v = makeVerdict("fn", 20, 12, contributors);
-      const result = makeResult([v]);
+      const result = prepareForJsonOutput(makeResult([v]), "all");
 
-      const reporter = new JsonReporter({ breakdown: "all" });
+      const reporter = new JsonReporter();
       const parsed = JSON.parse(reporter.format(result));
 
       expect(parsed.functions[0].scored.contributors[0].operator).toBe("&&");
@@ -167,9 +168,9 @@ describe("Contributor rendering in reporters", () => {
         { kind: "if-branch", line: 5, column: 2 },
       ];
       const v = makeVerdict("fn", 20, 12, contributors);
-      const result = makeResult([v]);
+      const result = prepareForJsonOutput(makeResult([v]), "all");
 
-      const reporter = new JsonReporter({ breakdown: "all" });
+      const reporter = new JsonReporter();
       const parsed = JSON.parse(reporter.format(result));
 
       expect(parsed.functions[0].scored.contributors[0]).not.toHaveProperty("operator");
