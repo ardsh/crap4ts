@@ -19,7 +19,7 @@ import { getChangedFiles } from "./diff.js";
 import { ConsoleReporter } from "../adapters/reporters/console.js";
 import { JsonReporter } from "../adapters/reporters/json.js";
 import { MarkdownReporter } from "../adapters/reporters/markdown.js";
-import { selectContributors } from "../domain/contributors.js";
+import { prepareForJsonOutput } from "../core/prepare-output.js";
 import type { ReporterPort } from "../ports/reporter-port.js";
 import type { AnalysisResult, BreakdownMode, FunctionVerdict } from "../domain/types.js";
 
@@ -358,27 +358,6 @@ function createReporter(config: ResolvedConfig): ReporterPort {
     default:
       throw new Error(`Unknown output format: "${format}". Valid formats: table, json, markdown`);
   }
-}
-
-// ── JSON Pre-Mapping ──────────────────────────────────────────────
-
-export function prepareForJsonOutput(
-  result: AnalysisResult,
-  breakdown: BreakdownMode,
-): AnalysisResult {
-  return {
-    ...result,
-    functions: result.functions.map((v) => {
-      const include = breakdown !== "off" && (breakdown === "all" || v.exceeds);
-      const { contributors: _, ...scoredRest } = v.scored;
-      return {
-        ...v,
-        scored: include
-          ? { ...scoredRest, contributors: selectContributors(v, breakdown) }
-          : scoredRest as typeof v.scored,
-      };
-    }),
-  };
 }
 
 // ── Filtering & Sorting ────────────────────────────────────────────

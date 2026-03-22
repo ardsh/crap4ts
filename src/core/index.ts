@@ -32,3 +32,4 @@ export type {
 } from "../domain/types.js";
 export { RiskLevel } from "../domain/types.js";
 export { selectContributors } from "../domain/contributors.js";
+export { prepareForJsonOutput } from "./prepare-output.js";

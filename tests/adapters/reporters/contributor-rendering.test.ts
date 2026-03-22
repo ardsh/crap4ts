@@ -3,7 +3,7 @@ import { JsonReporter } from "../../../src/adapters/reporters/json.js";
 import { ConsoleReporter } from "../../../src/adapters/reporters/console.js";
 import { MarkdownReporter } from "../../../src/adapters/reporters/markdown.js";
 import { computeSummary } from "../../../src/domain/summary.js";
-import { prepareForJsonOutput } from "../../../src/cli/cli.js";
+import { prepareForJsonOutput } from "../../../src/core/prepare-output.js";
 import type {
   AnalysisResult,
   ComplexityContributor,
