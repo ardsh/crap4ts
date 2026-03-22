@@ -369,13 +369,12 @@ export function prepareForJsonOutput(
   return {
     ...result,
     functions: result.functions.map((v) => {
-      const selected = selectContributors(v, breakdown);
       const include = breakdown !== "off" && (breakdown === "all" || v.exceeds);
       const { contributors: _, ...scoredRest } = v.scored;
       return {
         ...v,
         scored: include
-          ? { ...scoredRest, contributors: selected }
+          ? { ...scoredRest, contributors: selectContributors(v, breakdown) }
           : scoredRest as typeof v.scored,
       };
     }),
