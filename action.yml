@@ -92,7 +92,7 @@ runs:
             cmd="npx crap4ts@${INPUT_VERSION}"
           fi
           cmd="$cmd --format $format"
-          [ -n "$INPUT_THRESHOLD" ]       && cmd="$cmd --threshold $INPUT_THRESHOLD"
+          cmd="$cmd --threshold $INPUT_THRESHOLD"
           [ -n "$INPUT_COVERAGE_PATH" ]   && cmd="$cmd --coverage $INPUT_COVERAGE_PATH"
           [ -n "$INPUT_SRC" ]             && cmd="$cmd --src $INPUT_SRC"
           [ -n "$INPUT_COVERAGE_METRIC" ] && cmd="$cmd --coverage-metric $INPUT_COVERAGE_METRIC"
@@ -144,7 +144,7 @@ runs:
             cat crap4ts-comment-body.md
             echo ""
             echo "---"
-            echo "*Threshold: ${INPUT_THRESHOLD:-default} · ${MODE} · [Workflow run](${RUN_URL})*"
+            echo "*Threshold: ${INPUT_THRESHOLD} · ${MODE} · [Workflow run](${RUN_URL})*"
           } > crap4ts-comment.md
         fi
 

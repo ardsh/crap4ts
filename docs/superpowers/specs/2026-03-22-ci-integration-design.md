@@ -48,9 +48,9 @@ A composite action at the repo root (`action.yml`) that anyone can reference as 
 
 #### Threshold Precedence
 
-The Action's default threshold of `30` (lenient) intentionally diverges from the CLI default of `16`. Rationale: the Action is the adoption entry point for new codebases. A threshold of 16 would fail most existing projects on first run, discouraging adoption. Setting 30 (lenient) lets teams see results before enforcing. Teams tighten the threshold as they improve their codebase.
+The Action's default threshold matches the CLI default (`16`). Users who want lenient adoption can set `threshold: 30` explicitly. The `--threshold` flag is always passed since the input always has a value.
 
-**Precedence when both Action input and config file exist:** The Action passes `--threshold` as a CLI flag, which takes highest priority in the merge chain. If a user has `threshold: 16` in their `crap4ts.config.ts` and doesn't set `threshold` in the Action, the CLI flag is omitted and the config file value (16) wins. If the user sets `threshold: 30` in the Action, the CLI flag overrides the config file.
+**Precedence when both Action input and config file exist:** The Action passes `--threshold` as a CLI flag, which takes highest priority in the merge chain. If a user has a different threshold in their `crap4ts.config.ts`, the Action input overrides it.
 
 #### Outputs
 

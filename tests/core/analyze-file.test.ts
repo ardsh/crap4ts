@@ -159,7 +159,7 @@ describe("analyzeFile", () => {
     )!;
     expect(parseVerdict.scored.coveragePercent).toBe(0);
     expect(parseVerdict.scored.crap.value).toBe(30);
-    expect(parseVerdict.exceeds).toBe(true); // 30 > 12
+    expect(parseVerdict.exceeds).toBe(true); // 30 > 16
 
     // CRAP(3, 0%) = 9 * 1 + 3 = 12
     const formatVerdict = verdicts.find(

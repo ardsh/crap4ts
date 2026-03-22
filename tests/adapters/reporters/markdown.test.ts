@@ -1,112 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { MarkdownReporter } from "../../../src/adapters/reporters/markdown.js";
-import { RiskLevel } from "../../../src/domain/types.js";
 import { PRESETS } from "../../../src/domain/threshold.js";
-import type {
-  AnalysisResult,
-  FunctionVerdict,
-  FunctionIdentity,
-  CrapScore,
-  AnalysisSummary,
-  RiskDistribution,
-  ThresholdConfig,
-} from "../../../src/domain/types.js";
-
-// ── Test Helpers ──────────────────────────────────────────────────────
-
-function makeIdentity(
-  filePath: string,
-  name: string,
-  startLine = 1,
-): FunctionIdentity {
-  return {
-    filePath,
-    qualifiedName: name,
-    span: { startLine, startColumn: 0, endLine: startLine + 9, endColumn: 0 },
-  };
-}
-
-function makeScore(value: number): CrapScore {
-  let riskLevel: RiskLevel;
-  if (value <= 5) riskLevel = RiskLevel.Low;
-  else if (value <= 8) riskLevel = RiskLevel.Acceptable;
-  else if (value <= 30) riskLevel = RiskLevel.Moderate;
-  else riskLevel = RiskLevel.High;
-  return { value, riskLevel };
-}
-
-function makeVerdict(
-  filePath: string,
-  name: string,
-  cc: number,
-  covPct: number,
-  crapValue: number,
-  threshold: number,
-  startLine = 1,
-): FunctionVerdict {
-  return {
-    scored: {
-      identity: makeIdentity(filePath, name, startLine),
-      cyclomaticComplexity: cc,
-      coveragePercent: covPct,
-      crap: makeScore(crapValue),
-      contributors: [],
-    },
-    threshold,
-    exceeds: crapValue > threshold,
-  };
-}
-
-function makeDistribution(
-  low = 0,
-  acceptable = 0,
-  moderate = 0,
-  high = 0,
-): RiskDistribution {
-  return {
-    [RiskLevel.Low]: low,
-    [RiskLevel.Acceptable]: acceptable,
-    [RiskLevel.Moderate]: moderate,
-    [RiskLevel.High]: high,
-  };
-}
-
-function makeSummary(
-  overrides: Partial<AnalysisSummary> = {},
-): AnalysisSummary {
-  return {
-    totalFunctions: 0,
-    totalFiles: 0,
-    exceedingThreshold: 0,
-    exceedingPercent: 0,
-    averageCrap: 0,
-    medianCrap: 0,
-    maxCrap: makeScore(0),
-    worstFunction: null,
-    distribution: makeDistribution(),
-    crapLoad: 0,
-    ...overrides,
-  };
-}
-
-function makeResult(
-  functions: FunctionVerdict[],
-  summary: AnalysisSummary,
-  passed: boolean,
-  threshold = PRESETS.default,
-): AnalysisResult {
-  return {
-    functions,
-    unmatched: [],
-    warnings: [],
-    summary,
-    thresholdConfig: {
-      defaultThreshold: threshold,
-      overrides: [],
-    } satisfies ThresholdConfig,
-    passed,
-  };
-}
+import type { FunctionVerdict } from "../../../src/domain/types.js";
+import { makeScore, makeVerdict, makeSummary, makeResult } from "./helpers.js";
 
 // ── Tests ─────────────────────────────────────────────────────────────
 
@@ -237,7 +133,7 @@ describe("MarkdownReporter", () => {
   describe("sort order", () => {
     it("sorts functions by CRAP score descending", () => {
       const v1 = makeVerdict("src/a.ts", "low", 1, 100.0, 1.0, PRESETS.default, 1);
-      const v2 = makeVerdict("src/b.ts", "high", PRESETS.default, 45.0, 97.3, PRESETS.default, 5);
+      const v2 = makeVerdict("src/b.ts", "high", 12, 45.0, 97.3, PRESETS.default, 5);
       const v3 = makeVerdict("src/c.ts", "mid", 5, 60.0, 15.0, PRESETS.default, 10);
 
       const result = makeResult(
@@ -405,7 +301,7 @@ describe("MarkdownReporter", () => {
   describe("multiple files", () => {
     it("sorts functions globally by CRAP score descending", () => {
       const v1 = makeVerdict("src/a.ts", "aFn", 5, 60.0, 15.0, PRESETS.default, 10);
-      const v2 = makeVerdict("src/b.ts", "bFn", PRESETS.default, 45.0, 97.3, PRESETS.default, 42);
+      const v2 = makeVerdict("src/b.ts", "bFn", 12, 45.0, 97.3, PRESETS.default, 42);
       const v3 = makeVerdict("src/c.ts", "cFn", 1, 100.0, 1.0, PRESETS.default, 5);
 
       const result = makeResult(
