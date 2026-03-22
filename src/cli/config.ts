@@ -147,6 +147,10 @@ export interface ResolvedConfig {
   exclude?: string[];
   thresholds?: Record<string, number>;
   src?: string | string[];
+  breakdown?: "off" | "exceeding" | "all";
+  sort?: "crap" | "complexity" | "coverage" | "name";
+  top?: number;
+  summary?: boolean;
 }
 
 export interface ResolveConfigOptions {
@@ -161,6 +165,10 @@ export interface ResolveConfigOptions {
     include: string[];
     exclude: string[];
     src: string | string[];
+    breakdown: "off" | "exceeding" | "all";
+    sort: "crap" | "complexity" | "coverage" | "name";
+    top: number;
+    summary: boolean;
   }>;
 }
 
@@ -180,18 +188,22 @@ export function resolveConfig(options: ResolveConfigOptions): ResolvedConfig {
   return {
     // Threshold: CLI > env > file
     threshold: cli.threshold ?? env.threshold ?? file.threshold,
-    // Coverage path: CLI > env > file (file doesn't have coverage path)
+    // Coverage path: CLI > env (runtime-only, not in config file)
     coverage: cli.coverage ?? env.coverage,
-    // Format: CLI > env
-    format: cli.format ?? env.format,
+    // Format: CLI > env > file
+    format: cli.format ?? env.format ?? file.format,
     // NO_COLOR: CLI > env
     noColor: cli.noColor ?? env.noColor ?? false,
-    // File-only fields (no env var equivalent)
+    // CLI > file fields
     coverageMetric: cli.coverageMetric ?? file.coverageMetric,
     include: cli.include ?? file.include,
     exclude: cli.exclude ?? file.exclude,
     thresholds: file.thresholds,
-    src: cli.src,
+    src: cli.src ?? file.src,
+    breakdown: cli.breakdown ?? file.breakdown,
+    sort: cli.sort ?? file.sort,
+    top: cli.top ?? file.top,
+    summary: cli.summary ?? file.summary,
   };
 }
 
