@@ -374,9 +374,9 @@ describe("configToThresholdConfig", () => {
     expect(tc.overrides).toEqual([]);
   });
 
-  it("uses default threshold of 12 when none specified", () => {
+  it("uses default threshold of 16 when none specified", () => {
     const tc = configToThresholdConfig({});
-    expect(tc.defaultThreshold).toBe(12);
+    expect(tc.defaultThreshold).toBe(16);
   });
 
   it("converts thresholds map to overrides", () => {
@@ -395,7 +395,7 @@ describe("configToThresholdConfig", () => {
     const tc = configToThresholdConfig({
       thresholds: { "legacy/**": 30 },
     });
-    expect(tc.defaultThreshold).toBe(12);
+    expect(tc.defaultThreshold).toBe(16);
     expect(tc.overrides).toEqual([{ glob: "legacy/**", threshold: 30 }]);
   });
 });

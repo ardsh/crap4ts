@@ -134,7 +134,7 @@ describe("analyzeFile", () => {
     expect(verdict.scored.coveragePercent).toBe(80);
     // CRAP(3, 80%) = 3^2 * 0.2^3 + 3 = 9 * 0.008 + 3 = 3.07
     expect(verdict.scored.crap.value).toBeCloseTo(3.07, 1);
-    expect(verdict.threshold).toBe(12); // default
+    expect(verdict.threshold).toBe(16); // default
     expect(verdict.exceeds).toBe(false);
   });
 
@@ -159,7 +159,7 @@ describe("analyzeFile", () => {
     )!;
     expect(parseVerdict.scored.coveragePercent).toBe(0);
     expect(parseVerdict.scored.crap.value).toBe(30);
-    expect(parseVerdict.exceeds).toBe(true); // 30 > 12
+    expect(parseVerdict.exceeds).toBe(true); // 30 > 16
 
     // CRAP(3, 0%) = 9 * 1 + 3 = 12
     const formatVerdict = verdicts.find(
@@ -167,7 +167,7 @@ describe("analyzeFile", () => {
     )!;
     expect(formatVerdict.scored.coveragePercent).toBe(0);
     expect(formatVerdict.scored.crap.value).toBe(12);
-    expect(formatVerdict.exceeds).toBe(false); // 12 is not > 12
+    expect(formatVerdict.exceeds).toBe(false); // CRAP 12 is not > 16
   });
 
   it("applies custom threshold correctly", async () => {

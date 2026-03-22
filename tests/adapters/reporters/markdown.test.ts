@@ -1,111 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { MarkdownReporter } from "../../../src/adapters/reporters/markdown.js";
-import { RiskLevel } from "../../../src/domain/types.js";
-import type {
-  AnalysisResult,
-  FunctionVerdict,
-  FunctionIdentity,
-  CrapScore,
-  AnalysisSummary,
-  RiskDistribution,
-  ThresholdConfig,
-} from "../../../src/domain/types.js";
-
-// ── Test Helpers ──────────────────────────────────────────────────────
-
-function makeIdentity(
-  filePath: string,
-  name: string,
-  startLine = 1,
-): FunctionIdentity {
-  return {
-    filePath,
-    qualifiedName: name,
-    span: { startLine, startColumn: 0, endLine: startLine + 9, endColumn: 0 },
-  };
-}
-
-function makeScore(value: number): CrapScore {
-  let riskLevel: RiskLevel;
-  if (value <= 5) riskLevel = RiskLevel.Low;
-  else if (value <= 8) riskLevel = RiskLevel.Acceptable;
-  else if (value <= 30) riskLevel = RiskLevel.Moderate;
-  else riskLevel = RiskLevel.High;
-  return { value, riskLevel };
-}
-
-function makeVerdict(
-  filePath: string,
-  name: string,
-  cc: number,
-  covPct: number,
-  crapValue: number,
-  threshold: number,
-  startLine = 1,
-): FunctionVerdict {
-  return {
-    scored: {
-      identity: makeIdentity(filePath, name, startLine),
-      cyclomaticComplexity: cc,
-      coveragePercent: covPct,
-      crap: makeScore(crapValue),
-      contributors: [],
-    },
-    threshold,
-    exceeds: crapValue > threshold,
-  };
-}
-
-function makeDistribution(
-  low = 0,
-  acceptable = 0,
-  moderate = 0,
-  high = 0,
-): RiskDistribution {
-  return {
-    [RiskLevel.Low]: low,
-    [RiskLevel.Acceptable]: acceptable,
-    [RiskLevel.Moderate]: moderate,
-    [RiskLevel.High]: high,
-  };
-}
-
-function makeSummary(
-  overrides: Partial<AnalysisSummary> = {},
-): AnalysisSummary {
-  return {
-    totalFunctions: 0,
-    totalFiles: 0,
-    exceedingThreshold: 0,
-    exceedingPercent: 0,
-    averageCrap: 0,
-    medianCrap: 0,
-    maxCrap: makeScore(0),
-    worstFunction: null,
-    distribution: makeDistribution(),
-    crapLoad: 0,
-    ...overrides,
-  };
-}
-
-function makeResult(
-  functions: FunctionVerdict[],
-  summary: AnalysisSummary,
-  passed: boolean,
-  threshold = 12,
-): AnalysisResult {
-  return {
-    functions,
-    unmatched: [],
-    warnings: [],
-    summary,
-    thresholdConfig: {
-      defaultThreshold: threshold,
-      overrides: [],
-    } satisfies ThresholdConfig,
-    passed,
-  };
-}
+import { PRESETS } from "../../../src/domain/threshold.js";
+import type { FunctionVerdict } from "../../../src/domain/types.js";
+import { makeScore, makeVerdict, makeSummary, makeResult } from "./helpers.js";
 
 // ── Tests ─────────────────────────────────────────────────────────────
 
@@ -122,31 +19,29 @@ describe("MarkdownReporter", () => {
 
   describe("result line", () => {
     it("shows FAIL with exceeding count, total, and threshold", () => {
-      const v1 = makeVerdict("src/domain/services/pricing.ts", "calculateLineTotal", 12, 45.0, 97.3, 12, 42);
-      const v2 = makeVerdict("src/domain/services/pricing.ts", "applyDiscountRules", 8, 62.5, 30.4, 12, 80);
-      const v3 = makeVerdict("src/domain/services/pricing.ts", "formatInvoice", 6, 50.0, 15.2, 12, 120);
+      const v1 = makeVerdict("src/domain/services/pricing.ts", "calculateLineTotal", 12, 45.0, 97.3, PRESETS.default, 42);
+      const v2 = makeVerdict("src/domain/services/pricing.ts", "applyDiscountRules", 8, 62.5, 30.4, PRESETS.default, 80);
+      const v3 = makeVerdict("src/domain/services/pricing.ts", "formatInvoice", 6, 50.0, 15.2, PRESETS.default, 120);
 
       const result = makeResult(
         [v1, v2, v3],
         makeSummary({ totalFunctions: 47, totalFiles: 1, exceedingThreshold: 3, maxCrap: makeScore(97.3) }),
         false,
-        12,
       );
 
       const reporter = new MarkdownReporter();
       const output = reporter.format(result);
 
-      expect(output).toContain("**Result: FAIL** | 3 of 47 functions above threshold (12)");
+      expect(output).toContain(`**Result: FAIL** | 3 of 47 functions above threshold (${PRESETS.default})`);
     });
 
     it("shows PASS when no functions exceed threshold", () => {
-      const v1 = makeVerdict("src/utils.ts", "add", 1, 100.0, 1.0, 12);
+      const v1 = makeVerdict("src/utils.ts", "add", 1, 100.0, 1.0, PRESETS.default);
 
       const result = makeResult(
         [v1],
         makeSummary({ totalFunctions: 2, totalFiles: 1, exceedingThreshold: 0, maxCrap: makeScore(1.0) }),
         true,
-        12,
       );
 
       const reporter = new MarkdownReporter();
@@ -159,7 +54,7 @@ describe("MarkdownReporter", () => {
 
   describe("table structure", () => {
     it("has columns: CRAP, CC, Cov%, Function, Location", () => {
-      const v1 = makeVerdict("src/a.ts", "fn", 5, 80.0, 6.25, 12, 10);
+      const v1 = makeVerdict("src/a.ts", "fn", 5, 80.0, 6.25, PRESETS.default, 10);
 
       const result = makeResult(
         [v1],
@@ -175,7 +70,7 @@ describe("MarkdownReporter", () => {
     });
 
     it("formats data rows with CRAP, CC, Cov%, backtick function, backtick location", () => {
-      const v1 = makeVerdict("src/domain/services/pricing.ts", "calculateLineTotal", 12, 45.0, 97.3, 12, 42);
+      const v1 = makeVerdict("src/domain/services/pricing.ts", "calculateLineTotal", 12, 45.0, 97.3, PRESETS.default, 42);
 
       const result = makeResult(
         [v1],
@@ -190,7 +85,7 @@ describe("MarkdownReporter", () => {
     });
 
     it("formats coverage with one decimal place and % suffix", () => {
-      const v1 = makeVerdict("src/a.ts", "fn", 1, 100.0, 1.0, 12);
+      const v1 = makeVerdict("src/a.ts", "fn", 1, 100.0, 1.0, PRESETS.default);
 
       const result = makeResult(
         [v1],
@@ -205,7 +100,7 @@ describe("MarkdownReporter", () => {
     });
 
     it("formats CRAP with one decimal place", () => {
-      const v1 = makeVerdict("src/a.ts", "fn", 5, 34.5, 12.03, 12);
+      const v1 = makeVerdict("src/a.ts", "fn", 5, 34.5, 12.03, PRESETS.default);
 
       const result = makeResult(
         [v1],
@@ -220,7 +115,7 @@ describe("MarkdownReporter", () => {
     });
 
     it("uses startLine from span in location format", () => {
-      const v1 = makeVerdict("src/deep/nested/file.ts", "myFunc", 3, 70.0, 5.4, 12, 99);
+      const v1 = makeVerdict("src/deep/nested/file.ts", "myFunc", 3, 70.0, 5.4, PRESETS.default, 99);
 
       const result = makeResult(
         [v1],
@@ -237,9 +132,9 @@ describe("MarkdownReporter", () => {
 
   describe("sort order", () => {
     it("sorts functions by CRAP score descending", () => {
-      const v1 = makeVerdict("src/a.ts", "low", 1, 100.0, 1.0, 12, 1);
-      const v2 = makeVerdict("src/b.ts", "high", 12, 45.0, 97.3, 12, 5);
-      const v3 = makeVerdict("src/c.ts", "mid", 5, 60.0, 15.0, 12, 10);
+      const v1 = makeVerdict("src/a.ts", "low", 1, 100.0, 1.0, PRESETS.default, 1);
+      const v2 = makeVerdict("src/b.ts", "high", 12, 45.0, 97.3, PRESETS.default, 5);
+      const v3 = makeVerdict("src/c.ts", "mid", 5, 60.0, 15.0, PRESETS.default, 10);
 
       const result = makeResult(
         [v1, v2, v3],
@@ -261,9 +156,9 @@ describe("MarkdownReporter", () => {
 
   describe("<details> collapse", () => {
     it("wraps full results in <details> when there are passing functions beyond failures", () => {
-      const failing1 = makeVerdict("src/a.ts", "badFn", 10, 20.0, 80.0, 12, 1);
-      const passing1 = makeVerdict("src/b.ts", "goodFn", 1, 100.0, 1.0, 12, 5);
-      const passing2 = makeVerdict("src/c.ts", "okFn", 2, 90.0, 2.1, 12, 10);
+      const failing1 = makeVerdict("src/a.ts", "badFn", 10, 20.0, 80.0, PRESETS.default, 1);
+      const passing1 = makeVerdict("src/b.ts", "goodFn", 1, 100.0, 1.0, PRESETS.default, 5);
+      const passing2 = makeVerdict("src/c.ts", "okFn", 2, 90.0, 2.1, PRESETS.default, 10);
 
       const result = makeResult(
         [failing1, passing1, passing2],
@@ -291,8 +186,8 @@ describe("MarkdownReporter", () => {
     });
 
     it("does not add <details> when all functions exceed threshold", () => {
-      const v1 = makeVerdict("src/a.ts", "bad1", 10, 20.0, 80.0, 12, 1);
-      const v2 = makeVerdict("src/a.ts", "bad2", 8, 30.0, 50.0, 12, 20);
+      const v1 = makeVerdict("src/a.ts", "bad1", 10, 20.0, 80.0, PRESETS.default, 1);
+      const v2 = makeVerdict("src/a.ts", "bad2", 8, 30.0, 50.0, PRESETS.default, 20);
 
       const result = makeResult(
         [v1, v2],
@@ -308,8 +203,8 @@ describe("MarkdownReporter", () => {
     });
 
     it("does not add <details> when no functions exceed threshold", () => {
-      const v1 = makeVerdict("src/a.ts", "good1", 1, 100.0, 1.0, 12, 1);
-      const v2 = makeVerdict("src/a.ts", "good2", 2, 90.0, 2.1, 12, 20);
+      const v1 = makeVerdict("src/a.ts", "good1", 1, 100.0, 1.0, PRESETS.default, 1);
+      const v2 = makeVerdict("src/a.ts", "good2", 2, 90.0, 2.1, PRESETS.default, 20);
 
       const result = makeResult(
         [v1, v2],
@@ -325,9 +220,9 @@ describe("MarkdownReporter", () => {
 
     it("includes correct function count in <details> summary", () => {
       const verdicts: FunctionVerdict[] = [];
-      verdicts.push(makeVerdict("src/a.ts", "fail1", 10, 10.0, 90.0, 12, 1));
+      verdicts.push(makeVerdict("src/a.ts", "fail1", 10, 10.0, 90.0, PRESETS.default, 1));
       for (let i = 0; i < 4; i++) {
-        verdicts.push(makeVerdict("src/b.ts", `pass${i}`, 1, 100.0, 1.0, 12, i * 10 + 1));
+        verdicts.push(makeVerdict("src/b.ts", `pass${i}`, 1, 100.0, 1.0, PRESETS.default, i * 10 + 1));
       }
 
       const result = makeResult(
@@ -368,8 +263,8 @@ describe("MarkdownReporter", () => {
 
   describe("above-the-fold table", () => {
     it("only shows failing functions above the fold when details is present", () => {
-      const failing = makeVerdict("src/a.ts", "badFn", 10, 20.0, 80.0, 12, 1);
-      const passing = makeVerdict("src/b.ts", "goodFn", 1, 100.0, 1.0, 12, 5);
+      const failing = makeVerdict("src/a.ts", "badFn", 10, 20.0, 80.0, PRESETS.default, 1);
+      const passing = makeVerdict("src/b.ts", "goodFn", 1, 100.0, 1.0, PRESETS.default, 5);
 
       const result = makeResult(
         [failing, passing],
@@ -386,8 +281,8 @@ describe("MarkdownReporter", () => {
     });
 
     it("shows all functions in main table when no details block is needed", () => {
-      const v1 = makeVerdict("src/a.ts", "fn1", 1, 100.0, 1.0, 12, 1);
-      const v2 = makeVerdict("src/a.ts", "fn2", 2, 90.0, 2.1, 12, 20);
+      const v1 = makeVerdict("src/a.ts", "fn1", 1, 100.0, 1.0, PRESETS.default, 1);
+      const v2 = makeVerdict("src/a.ts", "fn2", 2, 90.0, 2.1, PRESETS.default, 20);
 
       const result = makeResult(
         [v1, v2],
@@ -405,9 +300,9 @@ describe("MarkdownReporter", () => {
 
   describe("multiple files", () => {
     it("sorts functions globally by CRAP score descending", () => {
-      const v1 = makeVerdict("src/a.ts", "aFn", 5, 60.0, 15.0, 12, 10);
-      const v2 = makeVerdict("src/b.ts", "bFn", 12, 45.0, 97.3, 12, 42);
-      const v3 = makeVerdict("src/c.ts", "cFn", 1, 100.0, 1.0, 12, 5);
+      const v1 = makeVerdict("src/a.ts", "aFn", 5, 60.0, 15.0, PRESETS.default, 10);
+      const v2 = makeVerdict("src/b.ts", "bFn", 12, 45.0, 97.3, PRESETS.default, 42);
+      const v3 = makeVerdict("src/c.ts", "cFn", 1, 100.0, 1.0, PRESETS.default, 5);
 
       const result = makeResult(
         [v1, v2, v3],

@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { createThresholdConfig, resolveThreshold } from "../../src/domain/threshold.js";
 
 describe("createThresholdConfig", () => {
-  it("uses default threshold of 12 when no options", () => {
+  it("uses default threshold of 16 when no options", () => {
     const config = createThresholdConfig();
-    expect(config.defaultThreshold).toBe(12);
+    expect(config.defaultThreshold).toBe(16);
     expect(config.overrides).toEqual([]);
   });
 

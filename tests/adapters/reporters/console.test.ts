@@ -1,106 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { ConsoleReporter } from "../../../src/adapters/reporters/console.js";
-import { RiskLevel } from "../../../src/domain/types.js";
-import type {
-  AnalysisResult,
-  FunctionVerdict,
-  FunctionIdentity,
-  CrapScore,
-  AnalysisSummary,
-  RiskDistribution,
-  ThresholdConfig,
-} from "../../../src/domain/types.js";
-
-// ── Test Helpers ──────────────────────────────────────────────────────
-
-function makeIdentity(filePath: string, name: string): FunctionIdentity {
-  return {
-    filePath,
-    qualifiedName: name,
-    span: { startLine: 1, startColumn: 0, endLine: 10, endColumn: 0 },
-  };
-}
-
-function makeScore(value: number): CrapScore {
-  let riskLevel: RiskLevel;
-  if (value <= 5) riskLevel = RiskLevel.Low;
-  else if (value <= 8) riskLevel = RiskLevel.Acceptable;
-  else if (value <= 30) riskLevel = RiskLevel.Moderate;
-  else riskLevel = RiskLevel.High;
-  return { value, riskLevel };
-}
-
-function makeVerdict(
-  filePath: string,
-  name: string,
-  cc: number,
-  covPct: number,
-  crapValue: number,
-  threshold: number,
-): FunctionVerdict {
-  return {
-    scored: {
-      identity: makeIdentity(filePath, name),
-      cyclomaticComplexity: cc,
-      coveragePercent: covPct,
-      crap: makeScore(crapValue),
-      contributors: [],
-    },
-    threshold,
-    exceeds: crapValue > threshold,
-  };
-}
-
-function makeDistribution(low = 0, acceptable = 0, moderate = 0, high = 0): RiskDistribution {
-  return {
-    [RiskLevel.Low]: low,
-    [RiskLevel.Acceptable]: acceptable,
-    [RiskLevel.Moderate]: moderate,
-    [RiskLevel.High]: high,
-  };
-}
-
-function makeSummary(overrides: Partial<AnalysisSummary> = {}): AnalysisSummary {
-  return {
-    totalFunctions: 0,
-    totalFiles: 0,
-    exceedingThreshold: 0,
-    exceedingPercent: 0,
-    averageCrap: 0,
-    medianCrap: 0,
-    maxCrap: makeScore(0),
-    worstFunction: null,
-    distribution: makeDistribution(),
-    crapLoad: 0,
-    ...overrides,
-  };
-}
-
-function makeResult(
-  functions: FunctionVerdict[],
-  summary: AnalysisSummary,
-  passed: boolean,
-  threshold = 12,
-  overrides: ThresholdConfig["overrides"] = [],
-): AnalysisResult {
-  return {
-    functions,
-    unmatched: [],
-    warnings: [],
-    summary,
-    thresholdConfig: { defaultThreshold: threshold, overrides } satisfies ThresholdConfig,
-    passed,
-  };
-}
+import { PRESETS } from "../../../src/domain/threshold.js";
+import { makeIdentity, makeScore, makeVerdict, makeSummary, makeResult } from "./helpers.js";
 
 // ── Tests ─────────────────────────────────────────────────────────────
 
 describe("ConsoleReporter", () => {
   describe("format", () => {
     it("produces table with file paths, function names, CC, Cov%, CRAP values", () => {
-      const v1 = makeVerdict("src/domain/services/pricing.ts", "calculateLineTotal", 12, 45.0, 97.3, 12);
-      const v2 = makeVerdict("src/domain/services/pricing.ts", "applyDiscountRules", 8, 62.5, 30.4, 12);
-      const v3 = makeVerdict("src/domain/lib/money.ts", "roundCurrency", 2, 100.0, 2.0, 12);
+      const v1 = makeVerdict("src/domain/services/pricing.ts", "calculateLineTotal", 12, 45.0, 97.3, PRESETS.default);
+      const v2 = makeVerdict("src/domain/services/pricing.ts", "applyDiscountRules", 8, 62.5, 30.4, PRESETS.default);
+      const v3 = makeVerdict("src/domain/lib/money.ts", "roundCurrency", 2, 100.0, 2.0, PRESETS.default);
 
       const result = makeResult(
         [v1, v2, v3],
@@ -112,7 +22,6 @@ describe("ConsoleReporter", () => {
           worstFunction: makeIdentity("src/domain/services/pricing.ts", "calculateLineTotal"),
         }),
         false,
-        12,
       );
 
       const reporter = new ConsoleReporter({ color: false });
@@ -153,8 +62,8 @@ describe("ConsoleReporter", () => {
     });
 
     it("shows PASS in summary when all functions are below threshold", () => {
-      const v1 = makeVerdict("src/utils.ts", "add", 1, 100.0, 1.0, 12);
-      const v2 = makeVerdict("src/utils.ts", "subtract", 1, 100.0, 1.0, 12);
+      const v1 = makeVerdict("src/utils.ts", "add", 1, 100.0, 1.0, PRESETS.default);
+      const v2 = makeVerdict("src/utils.ts", "subtract", 1, 100.0, 1.0, PRESETS.default);
 
       const result = makeResult(
         [v1, v2],
@@ -165,7 +74,6 @@ describe("ConsoleReporter", () => {
           maxCrap: makeScore(1.0),
         }),
         true,
-        12,
       );
 
       const reporter = new ConsoleReporter({ color: false });
@@ -176,7 +84,7 @@ describe("ConsoleReporter", () => {
     });
 
     it("shows FAIL in summary when functions exceed threshold", () => {
-      const v1 = makeVerdict("src/complex.ts", "doEverything", 20, 10.0, 380.0, 12);
+      const v1 = makeVerdict("src/complex.ts", "doEverything", 20, 10.0, 380.0, PRESETS.default);
 
       const result = makeResult(
         [v1],
@@ -187,7 +95,6 @@ describe("ConsoleReporter", () => {
           maxCrap: makeScore(380.0),
         }),
         false,
-        12,
       );
 
       const reporter = new ConsoleReporter({ color: false });
@@ -202,7 +109,6 @@ describe("ConsoleReporter", () => {
         [],
         makeSummary({ totalFunctions: 0, totalFiles: 0 }),
         true,
-        12,
       );
 
       const reporter = new ConsoleReporter({ color: false });
@@ -230,7 +136,7 @@ describe("ConsoleReporter", () => {
 
     it("shows Threshold column when overrides are active", () => {
       const v1 = makeVerdict("src/cli/run.ts", "runCli", 5, 60.0, 10.0, 20);
-      const v2 = makeVerdict("src/domain/calc.ts", "calculate", 3, 90.0, 3.0, 12);
+      const v2 = makeVerdict("src/domain/calc.ts", "calculate", 3, 90.0, 3.0, PRESETS.default);
 
       const overrides = [{ glob: "src/cli/**", threshold: 20 }];
       const result = makeResult(
@@ -242,7 +148,7 @@ describe("ConsoleReporter", () => {
           maxCrap: makeScore(10.0),
         }),
         true,
-        12,
+        PRESETS.default,
         overrides,
       );
 
@@ -253,12 +159,12 @@ describe("ConsoleReporter", () => {
       expect(output).toContain("Threshold");
 
       // Each row should show its effective threshold
-      // v1 has threshold 20, v2 has threshold 12
+      // v1 has threshold 20, v2 has default threshold
       const lines = output.split("\n");
       const cliRow = lines.find((l) => l.includes("runCli"));
       const domainRow = lines.find((l) => l.includes("calculate"));
       expect(cliRow).toContain("20");
-      expect(domainRow).toContain("12");
+      expect(domainRow).toContain(String(PRESETS.default));
     });
 
     it("shows overrides-active indicator in summary when overrides exist", () => {
@@ -267,19 +173,19 @@ describe("ConsoleReporter", () => {
         [],
         makeSummary({ totalFunctions: 5, exceedingThreshold: 1, maxCrap: makeScore(15) }),
         false,
-        12,
+        PRESETS.default,
         overrides,
       );
 
       const reporter = new ConsoleReporter({ color: false });
       const output = reporter.format(result);
 
-      expect(output).toContain("default: 12");
+      expect(output).toContain(`default: ${PRESETS.default}`);
       expect(output).toContain("overrides active");
     });
 
     it("does not show Threshold column when no overrides exist", () => {
-      const v1 = makeVerdict("src/utils.ts", "add", 1, 100.0, 1.0, 12);
+      const v1 = makeVerdict("src/utils.ts", "add", 1, 100.0, 1.0, PRESETS.default);
 
       const result = makeResult(
         [v1],
@@ -290,7 +196,6 @@ describe("ConsoleReporter", () => {
           maxCrap: makeScore(1.0),
         }),
         true,
-        12,
       );
 
       const reporter = new ConsoleReporter({ color: false });
@@ -304,19 +209,18 @@ describe("ConsoleReporter", () => {
 
       // Summary should show plain threshold number, not "overrides active"
       expect(output).not.toContain("overrides active");
-      expect(output).toContain("above threshold (12)");
+      expect(output).toContain(`above threshold (${PRESETS.default})`);
     });
   });
 
   describe("non-TTY mode (no ANSI codes)", () => {
     it("does not contain ANSI escape sequences when color is false", () => {
-      const v1 = makeVerdict("src/foo.ts", "bar", 10, 30.0, 80.0, 12);
+      const v1 = makeVerdict("src/foo.ts", "bar", 10, 30.0, 80.0, PRESETS.default);
 
       const result = makeResult(
         [v1],
         makeSummary({ totalFunctions: 1, totalFiles: 1, exceedingThreshold: 1, maxCrap: makeScore(80.0) }),
         false,
-        12,
       );
 
       const reporter = new ConsoleReporter({ color: false });
@@ -326,13 +230,12 @@ describe("ConsoleReporter", () => {
     });
 
     it("contains ANSI codes when color is true", () => {
-      const v1 = makeVerdict("src/foo.ts", "bar", 10, 30.0, 80.0, 12);
+      const v1 = makeVerdict("src/foo.ts", "bar", 10, 30.0, 80.0, PRESETS.default);
 
       const result = makeResult(
         [v1],
         makeSummary({ totalFunctions: 1, totalFiles: 1, exceedingThreshold: 1, maxCrap: makeScore(80.0) }),
         false,
-        12,
       );
 
       const reporter = new ConsoleReporter({ color: true });
@@ -344,7 +247,7 @@ describe("ConsoleReporter", () => {
 
   describe("color rules", () => {
     it("colorizes coverage red when below 50%", () => {
-      const v = makeVerdict("src/a.ts", "fn", 5, 30.0, 20.0, 12);
+      const v = makeVerdict("src/a.ts", "fn", 5, 30.0, 20.0, PRESETS.default);
       const result = makeResult(
         [v],
         makeSummary({ totalFunctions: 1, totalFiles: 1, exceedingThreshold: 1, maxCrap: makeScore(20.0) }),
@@ -358,7 +261,7 @@ describe("ConsoleReporter", () => {
     });
 
     it("colorizes coverage yellow when 50-79%", () => {
-      const v = makeVerdict("src/a.ts", "fn", 5, 65.0, 10.0, 12);
+      const v = makeVerdict("src/a.ts", "fn", 5, 65.0, 10.0, PRESETS.default);
       const result = makeResult(
         [v],
         makeSummary({ totalFunctions: 1, totalFiles: 1, maxCrap: makeScore(10.0) }),
@@ -372,7 +275,7 @@ describe("ConsoleReporter", () => {
     });
 
     it("colorizes coverage green when 80%+", () => {
-      const v = makeVerdict("src/a.ts", "fn", 2, 95.0, 2.0, 12);
+      const v = makeVerdict("src/a.ts", "fn", 2, 95.0, 2.0, PRESETS.default);
       const result = makeResult(
         [v],
         makeSummary({ totalFunctions: 1, totalFiles: 1, maxCrap: makeScore(2.0) }),
@@ -386,7 +289,7 @@ describe("ConsoleReporter", () => {
     });
 
     it("colorizes above-threshold CRAP scores red+bold", () => {
-      const v = makeVerdict("src/a.ts", "fn", 10, 30.0, 80.0, 12);
+      const v = makeVerdict("src/a.ts", "fn", 10, 30.0, 80.0, PRESETS.default);
       const result = makeResult(
         [v],
         makeSummary({ totalFunctions: 1, totalFiles: 1, exceedingThreshold: 1, maxCrap: makeScore(80.0) }),
@@ -415,8 +318,8 @@ describe("ConsoleReporter", () => {
 
   describe("row ordering", () => {
     it("outputs functions preserving input order", () => {
-      const v1 = makeVerdict("src/b.ts", "bFn", 1, 100.0, 1.0, 12);
-      const v2 = makeVerdict("src/a.ts", "aFn", 1, 100.0, 1.0, 12);
+      const v1 = makeVerdict("src/b.ts", "bFn", 1, 100.0, 1.0, PRESETS.default);
+      const v2 = makeVerdict("src/a.ts", "aFn", 1, 100.0, 1.0, PRESETS.default);
 
       const result = makeResult(
         [v1, v2],
@@ -435,7 +338,7 @@ describe("ConsoleReporter", () => {
 
   describe("coverage formatting", () => {
     it("formats coverage with one decimal place", () => {
-      const v = makeVerdict("src/x.ts", "fn", 1, 50.0, 1.0, 12);
+      const v = makeVerdict("src/x.ts", "fn", 1, 50.0, 1.0, PRESETS.default);
       const result = makeResult(
         [v],
         makeSummary({ totalFunctions: 1, totalFiles: 1, maxCrap: makeScore(1.0) }),
@@ -449,7 +352,7 @@ describe("ConsoleReporter", () => {
     });
 
     it("formats CRAP with one decimal place", () => {
-      const v = makeVerdict("src/x.ts", "fn", 5, 34.5, 12.03, 12);
+      const v = makeVerdict("src/x.ts", "fn", 5, 34.5, 12.03, PRESETS.default);
       const result = makeResult(
         [v],
         makeSummary({ totalFunctions: 1, totalFiles: 1, exceedingThreshold: 1, maxCrap: makeScore(12.03) }),

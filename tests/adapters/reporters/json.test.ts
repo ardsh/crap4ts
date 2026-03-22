@@ -1,96 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { JsonReporter } from "../../../src/adapters/reporters/json.js";
-import { RiskLevel } from "../../../src/domain/types.js";
-import type {
-  AnalysisResult,
-  FunctionVerdict,
-  FunctionIdentity,
-  CrapScore,
-  AnalysisSummary,
-  RiskDistribution,
-  ThresholdConfig,
-} from "../../../src/domain/types.js";
-
-// ── Test Helpers ──────────────────────────────────────────────────────
-
-function makeIdentity(filePath: string, name: string): FunctionIdentity {
-  return {
-    filePath,
-    qualifiedName: name,
-    span: { startLine: 1, startColumn: 0, endLine: 10, endColumn: 0 },
-  };
-}
-
-function makeScore(value: number): CrapScore {
-  let riskLevel: RiskLevel;
-  if (value <= 5) riskLevel = RiskLevel.Low;
-  else if (value <= 8) riskLevel = RiskLevel.Acceptable;
-  else if (value <= 30) riskLevel = RiskLevel.Moderate;
-  else riskLevel = RiskLevel.High;
-  return { value, riskLevel };
-}
-
-function makeVerdict(
-  filePath: string,
-  name: string,
-  cc: number,
-  covPct: number,
-  crapValue: number,
-  threshold: number,
-): FunctionVerdict {
-  return {
-    scored: {
-      identity: makeIdentity(filePath, name),
-      cyclomaticComplexity: cc,
-      coveragePercent: covPct,
-      crap: makeScore(crapValue),
-      contributors: [],
-    },
-    threshold,
-    exceeds: crapValue > threshold,
-  };
-}
-
-function makeDistribution(low = 0, acceptable = 0, moderate = 0, high = 0): RiskDistribution {
-  return {
-    [RiskLevel.Low]: low,
-    [RiskLevel.Acceptable]: acceptable,
-    [RiskLevel.Moderate]: moderate,
-    [RiskLevel.High]: high,
-  };
-}
-
-function makeSummary(overrides: Partial<AnalysisSummary> = {}): AnalysisSummary {
-  return {
-    totalFunctions: 0,
-    totalFiles: 0,
-    exceedingThreshold: 0,
-    exceedingPercent: 0,
-    averageCrap: 0,
-    medianCrap: 0,
-    maxCrap: makeScore(0),
-    worstFunction: null,
-    distribution: makeDistribution(),
-    crapLoad: 0,
-    ...overrides,
-  };
-}
-
-function makeResult(
-  functions: FunctionVerdict[],
-  summary: AnalysisSummary,
-  passed: boolean,
-  threshold = 12,
-): AnalysisResult {
-  return {
-    functions,
-    unmatched: [],
-    warnings: [],
-    summary,
-    thresholdConfig: { defaultThreshold: threshold, overrides: [] } satisfies ThresholdConfig,
-    passed,
-  };
-}
+import { PRESETS } from "../../../src/domain/threshold.js";
+import { makeIdentity, makeScore, makeVerdict, makeDistribution, makeSummary, makeResult } from "./helpers.js";
 
 // ── Tests ─────────────────────────────────────────────────────────────
 
@@ -168,7 +79,7 @@ describe("JsonReporter", () => {
         warnings: [],
         summary: makeSummary(),
         thresholdConfig: {
-          defaultThreshold: 12,
+          defaultThreshold: PRESETS.default,
           overrides: [{ glob: "src/legacy/**", threshold: 30 }],
         },
         passed: true,
@@ -176,7 +87,7 @@ describe("JsonReporter", () => {
       const output = reporter.format(analysisResult);
       const parsed = JSON.parse(output);
       expect(parsed.config).toEqual({
-        defaultThreshold: 12,
+        defaultThreshold: PRESETS.default,
         overrides: [{ glob: "src/legacy/**", threshold: 30 }],
       });
     });
@@ -202,8 +113,8 @@ describe("JsonReporter", () => {
     });
 
     it("includes functions array from AnalysisResult.functions", () => {
-      const v1 = makeVerdict("src/pricing.ts", "calculateTotal", 12, 45.0, 97.3, 12);
-      const v2 = makeVerdict("src/utils.ts", "add", 1, 100.0, 1.0, 12);
+      const v1 = makeVerdict("src/pricing.ts", "calculateTotal", 12, 45.0, 97.3, PRESETS.default);
+      const v2 = makeVerdict("src/utils.ts", "add", 1, 100.0, 1.0, PRESETS.default);
 
       const result = makeResult(
         [v1, v2],
@@ -230,7 +141,7 @@ describe("JsonReporter", () => {
     });
 
     it("preserves all AnalysisResult data through serialization", () => {
-      const v1 = makeVerdict("src/a.ts", "fnA", 5, 80.0, 6.25, 12);
+      const v1 = makeVerdict("src/a.ts", "fnA", 5, 80.0, 6.25, PRESETS.default);
 
       const summary = makeSummary({
         totalFunctions: 1,

@@ -150,7 +150,7 @@ describe("analyze", () => {
     expect(result.passed).toBe(true);
   });
 
-  it("applies default threshold of 12", async () => {
+  it("applies default threshold of 16", async () => {
     const comp = makeComplexity("src/complex.ts", "tangled", 10, span(1, 20));
     const cov = makeCoverage("src/complex.ts", "tangled", 0, span(1, 20));
 
@@ -170,7 +170,7 @@ describe("analyze", () => {
     const result = await analyze({ cwd: "/project" }, deps);
 
     // CRAP(10, 0%) = 10^2 * 1^3 + 10 = 110
-    expect(result.functions[0]!.threshold).toBe(12);
+    expect(result.functions[0]!.threshold).toBe(16);
     expect(result.functions[0]!.exceeds).toBe(true);
     expect(result.passed).toBe(false);
   });
@@ -277,7 +277,7 @@ describe("analyze", () => {
     });
 
     // CRAP(8, 20%) = 64 * 0.512 + 8 = 40.77
-    // Default threshold 12 => exceeds
+    // Default threshold 16 => exceeds
     // But with override of 50 for legacy => does not exceed
     const result = await analyze(
       {

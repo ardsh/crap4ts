@@ -4,6 +4,7 @@ import { ConsoleReporter } from "../../../src/adapters/reporters/console.js";
 import { MarkdownReporter } from "../../../src/adapters/reporters/markdown.js";
 import { computeSummary } from "../../../src/domain/summary.js";
 import { prepareForJsonOutput } from "../../../src/core/prepare-output.js";
+import { PRESETS } from "../../../src/domain/threshold.js";
 import type {
   AnalysisResult,
   ComplexityContributor,
@@ -55,7 +56,7 @@ function makeResult(verdicts: FunctionVerdict[]): AnalysisResult {
     unmatched: [],
     warnings: [],
     summary: computeSummary(verdicts),
-    thresholdConfig: { defaultThreshold: 12, overrides: [] },
+    thresholdConfig: { defaultThreshold: PRESETS.default, overrides: [] },
     passed: verdicts.every((v) => !v.exceeds),
   };
 }

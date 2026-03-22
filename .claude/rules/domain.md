@@ -13,4 +13,4 @@ When working with domain code:
 4. **Types live here** — all shared type definitions (`FunctionComplexity`, `CrapScore`, `SourceSpan`, etc.) are defined in `domain/types.ts`.
 5. **CRAP formula** — `CC^2 * (1 - coverage)^3 + CC`. Changes to the formula must update both `crap.ts` and its tests.
 6. **Half-open spans** — `SourceSpan` uses exclusive `endLine`. All span arithmetic must respect this convention.
-7. **Threshold config** — `threshold.ts` supports glob-based per-path overrides. Default threshold is 30, `--strict` is 8.
+7. **Threshold config** — `threshold.ts` supports glob-based per-path overrides. Default threshold is 16, `--strict` is 8, `--lenient` is 30.
