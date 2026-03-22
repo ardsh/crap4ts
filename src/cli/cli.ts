@@ -19,6 +19,7 @@ import { getChangedFiles } from "./diff.js";
 import { ConsoleReporter } from "../adapters/reporters/console.js";
 import { JsonReporter } from "../adapters/reporters/json.js";
 import { MarkdownReporter } from "../adapters/reporters/markdown.js";
+import { prepareForJsonOutput } from "../core/prepare-output.js";
 import type { ReporterPort } from "../ports/reporter-port.js";
 import type { AnalysisResult, BreakdownMode, FunctionVerdict } from "../domain/types.js";
 
@@ -243,7 +244,7 @@ program.action(async (opts: Record<string, unknown>) => {
     // 9. Output (unless --quiet)
     const quiet = Boolean(opts["quiet"]);
     if (!quiet) {
-      const reporter = createReporter(resolved, breakdown);
+      const reporter = createReporter(resolved);
       let output: string;
 
       const summaryOnly = Boolean(opts["summary"]);
@@ -254,7 +255,11 @@ program.action(async (opts: Record<string, unknown>) => {
         const sortField = opts["sort"] as string | undefined;
         const topN = opts["top"] as number | undefined;
         const filtered = applyFilters(result, sortField, topN);
-        output = reporter.format(filtered);
+        // Pre-map contributors for JSON output (reporters are pure serializers)
+        const reportable = format === "json"
+          ? prepareForJsonOutput(filtered, breakdown)
+          : filtered;
+        output = reporter.format(reportable);
       }
 
       console.log(output);
@@ -340,12 +345,12 @@ function resolveBreakdownFlag(
 
 // ── Reporter Factory ───────────────────────────────────────────────
 
-function createReporter(config: ResolvedConfig, breakdown: BreakdownMode = "off"): ReporterPort {
+function createReporter(config: ResolvedConfig): ReporterPort {
   const format = config.format ?? "table";
 
   switch (format) {
     case "json":
-      return new JsonReporter({ breakdown });
+      return new JsonReporter();
     case "markdown":
       return new MarkdownReporter();
     case "table":
