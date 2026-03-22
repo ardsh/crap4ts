@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, basename } from "node:path";
 import { defineConfig, type Crap4tsConfig } from "../core/define-config.js";
 import { createThresholdConfig } from "../domain/threshold.js";
-import type { ThresholdConfig } from "../domain/types.js";
+import type { BreakdownMode, ThresholdConfig } from "../domain/types.js";
 
 // ── Config File Names (discovery order) ──────────────────────────────
 
@@ -140,14 +140,14 @@ function createDefaultImport(): (path: string) => Promise<Record<string, unknown
 export interface ResolvedConfig {
   threshold?: number;
   coverage?: string;
-  format?: string;
+  format?: "table" | "json" | "markdown";
   noColor: boolean;
   coverageMetric?: "line" | "branch";
   include?: string[];
   exclude?: string[];
   thresholds?: Record<string, number>;
   src?: string | string[];
-  breakdown?: "off" | "exceeding" | "all";
+  breakdown?: BreakdownMode;
   sort?: "crap" | "complexity" | "coverage" | "name";
   top?: number;
   summary?: boolean;
@@ -159,13 +159,13 @@ export interface ResolveConfigOptions {
   cliFlags?: Partial<{
     threshold: number;
     coverage: string;
-    format: string;
+    format: "table" | "json" | "markdown";
     noColor: boolean;
     coverageMetric: "line" | "branch";
     include: string[];
     exclude: string[];
     src: string | string[];
-    breakdown: "off" | "exceeding" | "all";
+    breakdown: BreakdownMode;
     sort: "crap" | "complexity" | "coverage" | "name";
     top: number;
     summary: boolean;
@@ -207,10 +207,12 @@ export function resolveConfig(options: ResolveConfigOptions): ResolvedConfig {
   };
 }
 
+type FormatType = "table" | "json" | "markdown";
+
 interface ParsedEnv {
   threshold?: number;
   coverage?: string;
-  format?: string;
+  format?: FormatType;
   noColor: boolean;
 }
 
@@ -225,7 +227,11 @@ function parseEnvVars(env: Record<string, string | undefined>): ParsedEnv {
   }
 
   const coverage = env["CRAP4TS_COVERAGE"] || undefined;
-  const format = env["CRAP4TS_FORMAT"] || undefined;
+  const rawFormat = env["CRAP4TS_FORMAT"] || undefined;
+  const validFormats: FormatType[] = ["table", "json", "markdown"];
+  const format = rawFormat && validFormats.includes(rawFormat as FormatType)
+    ? (rawFormat as FormatType)
+    : undefined;
   const noColor = Boolean(env["NO_COLOR"]);
 
   return { threshold, coverage, format, noColor };

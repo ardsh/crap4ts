@@ -21,7 +21,7 @@ import { JsonReporter } from "../adapters/reporters/json.js";
 import { MarkdownReporter } from "../adapters/reporters/markdown.js";
 import { prepareForJsonOutput } from "../core/prepare-output.js";
 import type { ReporterPort } from "../ports/reporter-port.js";
-import type { AnalysisResult, FunctionVerdict } from "../domain/types.js";
+import type { AnalysisResult, BreakdownMode, FunctionVerdict } from "../domain/types.js";
 
 // ── Exit Codes ─────────────────────────────────────────────────────
 
@@ -171,7 +171,7 @@ program.action(async (opts: Record<string, unknown>) => {
       cliFlags: {
         threshold,
         coverage: opts["coverage"] as string | undefined,
-        format: opts["format"] as string | undefined,
+        format: opts["format"] as ResolvedConfig["format"],
         noColor: opts["color"] === false ? true : undefined, // only set when --no-color is explicit
         coverageMetric,
         include: opts["include"] as string[] | undefined,
@@ -340,7 +340,7 @@ function resolveThresholdFlag(
 
 function parseBreakdownCliFlag(
   raw: unknown,
-): "off" | "exceeding" | "all" | undefined {
+): BreakdownMode | undefined {
   if (raw === undefined || raw === false) return undefined;
   if (raw === true) return "exceeding"; // --breakdown without value
   if (raw === "all") return "all";
