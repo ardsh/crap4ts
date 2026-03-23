@@ -1,6 +1,6 @@
 {
   "name": "crap4ts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CRAP score analyzer for TypeScript — find complex, under-tested functions",
   "type": "module",
   "bin": {
@@ -79,7 +79,7 @@
     "static-analysis"
   ],
   "author": "Breezy Bays Labs",
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "repository": {
     "type": "git",
     "url": "https://github.com/breezy-bays-labs/crap4ts.git"

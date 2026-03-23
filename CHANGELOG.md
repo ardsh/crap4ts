@@ -2,6 +2,17 @@
 
 All notable changes to crap4ts are documented here. This project follows [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] — 2026-03-23
+
+### Changed
+
+- License changed from MIT to GPL-3.0-or-later.
+
+### Release Notes
+
+- Prepared for publish as the unscoped npm package `crap4ts`.
+- Supersedes the unpublished `v1.0.0` GitHub release attempt.
+
 ## [1.0.0] — 2026-03-22
 
 ### Breaking Changes

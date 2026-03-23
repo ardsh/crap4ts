@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/crap4ts)](https://www.npmjs.com/package/crap4ts)
 [![CI](https://github.com/breezy-bays-labs/crap4ts/actions/workflows/ci.yml/badge.svg)](https://github.com/breezy-bays-labs/crap4ts/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPLv3%2B-blue.svg)](./LICENSE)
 [![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 
 CRAP score analyzer for TypeScript — find functions that are too complex and too poorly tested.
@@ -318,4 +318,4 @@ Additional project docs:
 
 ## License
 
-MIT
+GNU General Public License v3.0 or later (`GPL-3.0-or-later`)
