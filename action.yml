@@ -16,7 +16,7 @@ inputs:
     required: false
     default: ''
   src:
-    description: 'Source directories (space-separated). Omit to let CLI auto-discover.'
+    description: 'Source directories (space-separated; paths containing spaces are not supported). Omit to let CLI auto-discover.'
     required: false
     default: ''
   changed-only:
@@ -44,7 +44,7 @@ inputs:
     required: false
     default: ''
   local:
-    description: 'Use local dist/cli.js instead of npx (for dogfooding)'
+    description: 'Use local dist/cli.js instead of npx (for local smoke testing)'
     required: false
     default: 'false'
 
@@ -82,39 +82,57 @@ runs:
         IS_PR: ${{ github.event_name == 'pull_request' }}
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
-        # Shared command builder — only the --format flag differs between runs
-        build_cmd() {
+        # Shared runner — only the --format flag differs between runs
+        run_crap4ts() {
           local format="$1"
-          local cmd
+          local -a cmd
+
+          case "$format" in
+            json|markdown|table) ;;
+            *)
+              echo "::error::Invalid crap4ts format: ${format}"
+              return 2
+              ;;
+          esac
+
+          if ! node -e 'const value = Number(process.argv[1]); if (!Number.isFinite(value) || value <= 0) process.exit(1)' "$INPUT_THRESHOLD"; then
+            echo "::error::Invalid threshold input: ${INPUT_THRESHOLD}"
+            return 2
+          fi
+
           if [ "$INPUT_LOCAL" = "true" ]; then
-            cmd="node dist/cli.js"
+            cmd=(node dist/cli.js)
           else
-            cmd="npx crap4ts@${INPUT_VERSION}"
+            cmd=(npx "crap4ts@${INPUT_VERSION}")
           fi
-          cmd="$cmd --format $format"
-          cmd="$cmd --threshold $INPUT_THRESHOLD"
-          [ -n "$INPUT_COVERAGE_PATH" ]   && cmd="$cmd --coverage $INPUT_COVERAGE_PATH"
-          [ -n "$INPUT_SRC" ]             && cmd="$cmd --src $INPUT_SRC"
-          [ -n "$INPUT_COVERAGE_METRIC" ] && cmd="$cmd --coverage-metric $INPUT_COVERAGE_METRIC"
+
+          cmd+=(--format "$format" --threshold "$INPUT_THRESHOLD")
+          [ -n "$INPUT_COVERAGE_PATH" ] && cmd+=(--coverage "$INPUT_COVERAGE_PATH")
+          if [ -n "$INPUT_SRC" ]; then
+            read -r -a src_parts <<< "$INPUT_SRC"
+            cmd+=(--src "${src_parts[@]}")
+          fi
+          [ -n "$INPUT_COVERAGE_METRIC" ] && cmd+=(--coverage-metric "$INPUT_COVERAGE_METRIC")
           if [ "$INPUT_CHANGED_ONLY" = "true" ] && [ -n "$PR_BASE_SHA" ]; then
-            cmd="$cmd --changed-since $PR_BASE_SHA"
+            cmd+=(--changed-since "$PR_BASE_SHA")
           fi
-          echo "$cmd"
+
+          printf "Running:"
+          printf " %q" "${cmd[@]}"
+          echo
+          "${cmd[@]}"
         }
 
         # 1. JSON analysis — always runs
-        CMD=$(build_cmd json)
-        echo "Running: $CMD"
-
         set +e
-        $CMD > crap4ts-report.json
+        run_crap4ts json > crap4ts-report.json
         EXIT_CODE=$?
         set -e
 
         echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
 
         # For config/parse errors, dump the output and fail immediately
-        if [ $EXIT_CODE -eq 2 ] || [ $EXIT_CODE -eq 3 ]; then
+        if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 1 ]; then
           echo "::error::crap4ts failed with exit code $EXIT_CODE"
           cat crap4ts-report.json
           exit $EXIT_CODE
@@ -127,10 +145,21 @@ runs:
 
         # 3. Markdown analysis — only for PR comments
         if [ "$POST_COMMENT" = "true" ] && [ "$IS_PR" = "true" ]; then
-          CMD=$(build_cmd markdown)
           set +e
-          $CMD > crap4ts-comment-body.md
+          run_crap4ts markdown > crap4ts-comment-body.md
+          MARKDOWN_EXIT_CODE=$?
           set -e
+
+          if [ $MARKDOWN_EXIT_CODE -ne 0 ] && [ $MARKDOWN_EXIT_CODE -ne 1 ]; then
+            echo "::error::crap4ts markdown report failed with exit code $MARKDOWN_EXIT_CODE"
+            cat crap4ts-comment-body.md
+            exit $MARKDOWN_EXIT_CODE
+          fi
+
+          if [ ! -s crap4ts-comment-body.md ]; then
+            echo "::error::crap4ts markdown report produced no output"
+            exit 3
+          fi
 
           # Determine analysis mode for footer
           if [ "$INPUT_CHANGED_ONLY" = "true" ] && [ -n "$PR_BASE_SHA" ]; then

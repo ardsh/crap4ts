@@ -1,8 +1,7 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
 
 const execFileAsync = promisify(execFile);
 const ROOT = join(__dirname, "../..");
@@ -29,12 +28,6 @@ async function runCli(
     };
   }
 }
-
-beforeAll(async () => {
-  if (!existsSync(CLI)) {
-    await execFileAsync("npm", ["run", "build"], { cwd: ROOT });
-  }
-}, 30_000);
 
 describe("--breakdown CLI flag", () => {
   describe("flag parsing", () => {
