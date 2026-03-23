@@ -56,6 +56,8 @@ node dist/cli.js --summary
    gh release create v<version> --title "v<version>" --notes-file <notes-file>
    ```
 
+   For the first npm publish of `crap4ts`, this is also the step that makes the README npm badge resolve instead of showing `package not found`.
+
 5. After the publish workflow succeeds, move or create the floating major Action tag (`v1`) to the same release commit:
 
    ```bash
@@ -66,6 +68,7 @@ node dist/cli.js --summary
 ## Post-Release Verification
 
 - Verify the npm package page shows the new version.
+- Verify the README npm badge resolves from npm instead of showing `package not found`.
 - Verify `npx crap4ts@<version> --help` works in a clean shell.
 - Verify the GitHub Action resolves from `breezy-bays-labs/crap4ts@v1`.
 - Verify the README examples still match the released surface.
