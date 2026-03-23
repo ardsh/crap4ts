@@ -1,6 +1,6 @@
 {
   "name": "crap4ts",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "CRAP score analyzer for TypeScript — find complex, under-tested functions",
   "type": "module",
   "bin": {

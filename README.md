@@ -286,7 +286,7 @@ const result = await parseCoverageFile("./coverage/coverage-final.json");
 
 - Functions with complexity but no matching coverage entry are now scored at 0% coverage and included in `result.functions`, `result.summary`, and threshold decisions.
 - Treat `result.functions` as the canonical scored result set. `result.unmatched` remains diagnostic mismatch detail and should not be added on top of summary totals.
-- GitHub Action users should update `uses: breezy-bays-labs/crap4ts@v0` to `uses: breezy-bays-labs/crap4ts@v1` once the v1 tag is published.
+- GitHub Action users should pin to `uses: breezy-bays-labs/crap4ts@v1` on the stable major release line.
 
 ## Coverage Format Support
 
