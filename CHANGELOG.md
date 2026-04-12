@@ -2,6 +2,14 @@
 
 All notable changes to crap4ts are documented here. This project follows [Semantic Versioning](https://semver.org/).
 
+## [1.0.2] — 2026-04-12
+
+Published as `@sql-engine/crap4ts`, a fork of [breezy-bays-labs/crap4ts](https://github.com/breezy-bays-labs/crap4ts) (GPL-3.0-or-later). Original copyright remains with Breezy Bays Labs.
+
+### Fixed
+
+- **Span matching for body-only coverage spans** (`src/domain/matching.ts`): functions with long parameter lists could fall below the 0.8 overlap ratio threshold because Istanbul records only the function body span, not the full declaration. The acceptance gate now also passes candidates when either span fully contains the other. The ranking signal (`contains`) retains its original definition (coverage encloses complexity) to avoid incorrectly elevating body-only matches over better-fit candidates. ([PR #37](https://github.com/breezy-bays-labs/crap4ts/pull/37))
+
 ## [1.0.1] — 2026-03-23
 
 ### Changed

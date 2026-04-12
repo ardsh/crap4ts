@@ -1,6 +1,6 @@
 {
-  "name": "crap4ts",
-  "version": "1.0.1",
+  "name": "@sql-engine/crap4ts",
+  "version": "1.0.2",
   "description": "CRAP score analyzer for TypeScript — find complex, under-tested functions",
   "type": "module",
   "bin": {
@@ -82,11 +82,11 @@
   "license": "GPL-3.0-or-later",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/breezy-bays-labs/crap4ts.git"
+    "url": "git+https://github.com/ardsh/crap4ts.git"
   },
-  "homepage": "https://github.com/breezy-bays-labs/crap4ts",
+  "homepage": "https://github.com/ardsh/crap4ts",
   "bugs": {
-    "url": "https://github.com/breezy-bays-labs/crap4ts/issues"
+    "url": "https://github.com/ardsh/crap4ts/issues"
   },
   "peerDependencies": {
     "typescript": ">=5.0.0"
