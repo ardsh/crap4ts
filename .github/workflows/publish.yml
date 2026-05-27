@@ -18,7 +18,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.14'
-          registry-url: https://registry.npmjs.org
 
       - run: npm ci
       - run: npm run typecheck
@@ -29,4 +28,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - run: npm publish --access public
+      - name: Publish to npm via Trusted Publishing
+        run: |
+          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
+          npm publish --access public --provenance
