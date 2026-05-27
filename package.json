@@ -1,6 +1,6 @@
 {
   "name": "@sql-engine/crap4ts",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "CRAP score analyzer for TypeScript — find complex, under-tested functions",
   "type": "module",
   "bin": {

@@ -5,12 +5,15 @@ import { readPackageVersion } from "./version.js";
 
 export interface ConsoleReporterOptions {
   color?: boolean;
+  failuresOnly?: boolean;
 }
 
 export class ConsoleReporter implements ReporterPort {
   private readonly c: ChalkInstance;
+  private readonly options: ConsoleReporterOptions;
 
   constructor(options: ConsoleReporterOptions = {}) {
+    this.options = options;
     const useColor = options.color ?? (process.stdout?.isTTY ?? false);
     this.c = new Chalk({ level: useColor ? 3 : 0 });
   }
@@ -25,7 +28,10 @@ export class ConsoleReporter implements ReporterPort {
     lines.push("");
 
     // ── Table ───────────────────────────────────────────────────────
-    const verdicts = result.functions;
+    const allVerdicts = result.functions;
+    const verdicts = this.options.failuresOnly
+      ? allVerdicts.filter((v) => v.exceeds)
+      : allVerdicts;
     const hasOverrides = thresholdConfig.overrides.length > 0;
 
     if (verdicts.length > 0) {

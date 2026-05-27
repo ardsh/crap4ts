@@ -79,6 +79,7 @@ program
   .option("-q, --quiet", "exit code only, no output")
   .option("-v, --verbose", "show discovery and warnings")
   .option("--no-color", "disable colors")
+  .option("--failures-only", "show only functions that exceed threshold")
   .option("--config <path>", "explicit config file path")
   .option(
     "--breakdown [mode]",
@@ -187,6 +188,7 @@ program.action(async (opts: Record<string, unknown>) => {
         sort: opts["sort"] as ResolvedConfig["sort"],
         top: opts["top"] as number | undefined,
         summary: opts["summary"] === true ? true : undefined,
+        failuresOnly: opts["failuresOnly"] === true ? true : undefined,
       },
     });
     const include = coerceArrayOption(resolved.include);

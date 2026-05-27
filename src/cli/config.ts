@@ -151,6 +151,7 @@ export interface ResolvedConfig {
   sort?: "crap" | "complexity" | "coverage" | "name";
   top?: number;
   summary?: boolean;
+  failuresOnly?: boolean;
 }
 
 export interface ResolveConfigOptions {
@@ -169,6 +170,7 @@ export interface ResolveConfigOptions {
     sort: "crap" | "complexity" | "coverage" | "name";
     top: number;
     summary: boolean;
+    failuresOnly: boolean;
   }>;
 }
 
@@ -199,6 +201,7 @@ export function resolveConfig(options: ResolveConfigOptions): ResolvedConfig {
     sort: firstDefined(cli.sort, file.sort),
     top: firstDefined(cli.top, file.top),
     summary: firstDefined(cli.summary, file.summary),
+    failuresOnly: firstDefined(cli.failuresOnly, file.failuresOnly),
   };
 }
 

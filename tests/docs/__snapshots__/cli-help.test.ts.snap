@@ -24,6 +24,7 @@ Options:
   -q, --quiet               exit code only, no output
   -v, --verbose             show discovery and warnings
   --no-color                disable colors
+  --failures-only           show only functions that exceed threshold
   --config <path>           explicit config file path
   --breakdown [mode]        show CC contributors (JSON only): all or exceeding
                             (default)

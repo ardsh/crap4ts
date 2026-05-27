@@ -72,7 +72,7 @@ export function createReporter(config: ResolvedConfig): ReporterPort {
     case "markdown":
       return new MarkdownReporter();
     case "table":
-      return new ConsoleReporter({ color: !config.noColor });
+      return new ConsoleReporter({ color: !config.noColor, failuresOnly: config.failuresOnly });
     default:
       throw new CliOptionError(
         `Unknown output format: "${format}". Valid formats: table, json, markdown`,

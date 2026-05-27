@@ -12,6 +12,7 @@ const configSchema = z.object({
   sort: z.enum(["crap", "complexity", "coverage", "name"]).optional(),
   top: z.number().int().positive().optional(),
   summary: z.boolean().optional(),
+  failuresOnly: z.boolean().optional(),
 });
 
 export type Crap4tsConfig = z.infer<typeof configSchema>;
